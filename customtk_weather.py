@@ -6,6 +6,8 @@ import datetime
 from appdirs import AppDirs
 import os
 import json
+import geocoder
+from geopy.geocoders import Nominatim
 
 # Simple desktop application made to track weather in a few locations as provided by the user
 # Utilizes tkinter as the main framework. Intended to track just three locations by default
@@ -80,6 +82,7 @@ def update_weather():
 
     # Loop through cities to add weather info
     for city in cities:
+        print(city)
         # If we already have the info, skip the city
         if city in displayed:
             continue
@@ -100,6 +103,14 @@ if __name__ == "__main__":
     # Global API key for OpenWeather
     api_key = "822be8f00df6e04cba9aca715e331cc3"
 
+    # Read the users IP address to find their city
+    iploc = geocoder.ip('me')
+    lat_lon = iploc.latlng
+    geolocator = Nominatim(user_agent="blah blah blah")
+    location = geolocator.reverse(lat_lon).raw
+    ipcity=location['address']['city']
+
+
     # List of all potential weather parameters
     weather_pars = [
         "temp",
@@ -119,7 +130,7 @@ if __name__ == "__main__":
     global weathers
     global wnum # number of weather locations (used for grid location)
 
-    cities = []#"Oslo", "Johannesburg"]
+    cities = [ipcity]
     displayed = []
     weathers = []
 
@@ -170,9 +181,9 @@ if __name__ == "__main__":
     addButton.grid(row=0, column=3)
 
     # Add Weather labels
-    cityLabel = Ctk.CTkLabel(bottom_frame, text="Location").grid(row=0, column=0, padx=5, pady=5)
-    currentLabel = Ctk.CTkLabel(bottom_frame, text="Current Weather").grid(row=0, column=1, padx=5, pady=5)
-    detailLabel = Ctk.CTkLabel(bottom_frame, text="Details").grid(row=0, column=2, padx=5, pady=5)
+    # cityLabel = Ctk.CTkLabel(bottom_frame, text="Location").grid(row=0, column=0, padx=5, pady=5)
+    # currentLabel = Ctk.CTkLabel(bottom_frame, text="Current Weather").grid(row=0, column=1, padx=5, pady=5)
+    # detailLabel = Ctk.CTkLabel(bottom_frame, text="Details").grid(row=0, column=2, padx=5, pady=5)
 
     update_weather()
 
