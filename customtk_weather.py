@@ -12,13 +12,17 @@ from geopy.geocoders import Nominatim
 # Simple desktop application made to track weather in a few locations as provided by the user
 # Utilizes tkinter as the main framework. Intended to track just three locations by default
 
+nmi_header = {'User-Agent': 'dcWeather/0.1 github.com/hermda02/weather_app'}
+
 Ctk.set_appearance_mode("Dark")
 Ctk.set_default_color_theme("blue")
 
 class displayCityWeather():
-    def __init__(self,city,bottom_frame,row):
+    def __init__(self,city,bottom_frame,row,lat_lon=[None]*2):
         print(row)
         self.cityname=city
+        self.lat=str(lat_lon[0])
+        self.lon=str(lat_lon[1])
         self.weatherData = ""
 
         self.cityLabel = Ctk.CTkLabel(bottom_frame,text=f"{city}")
@@ -31,30 +35,49 @@ class displayCityWeather():
         self.weather.grid(row=row, column=2,sticky="NW")
 
     def getWeather(self):
+        ''' getWeather : self
         
-        api = "https://api.openweathermap.org/data/2.5/weather?q="+self.cityname+"&appid="+api_key
-        json_city_data = requests.get(api).json()
-        self.extractWeather(json_city_data)
+        Function to call the API and pull down the data
 
-    def extractWeather(self,data):#,pars):
+        '''
+        
+        api = "https://api.met.no/weatherapi/locationforecast/2.0/complete?lat="+self.lat+"&lon="+self.lon
+        self.weatherData = requests.get(api, headers=nmi_header).json()
+        # print(self.weatherData["properties"])
+        self.extractNMIWeather()
 
-        condition = data['weather'][0]['main']
-        temp = int(data['main']['temp'] - 273.15)
-        min_temp = int(data['main']['temp_min'] - 273.15)
-        max_temp = int(data['main']['temp_max'] - 273.15)
-        pressure = data['main']['pressure']
-        humidity = data['main']['humidity']
-        wind = data['wind']['speed']
-        timezone = data['timezone']
-        local_time = time.strftime('%H:%M:%S', time.gmtime(data['dt'] + int(timezone)))
-        sunrise = time.strftime('%H:%M:%S', time.gmtime(data['sys']['sunrise'] + int(timezone)))
-        sunset = time.strftime('%H:%M:%S', time.gmtime(data['sys']['sunset'] + int(timezone)))
+    def extractNMIWeather(self):
+        ''' extractNMIWeather : self
+
+        Function that parses the data and adjusts the labels in the widget
+        
+        '''
+
+        units = self.weatherData["properties"]["meta"]["units"]
+        print(units)
+        weather_now = self.weatherData["properties"]["timeseries"][0]['data']['instant']['details']
+        print(weather_now)
+
+
+
+        # condition = data['weather'][0]['main']
+        # temp = int(data['main']['temp'] - 273.15)
+        # min_temp = int(data['main']['temp_min'] - 273.15)
+        # max_temp = int(data['main']['temp_max'] - 273.15)
+        # pressure = data['main']['pressure']
+        # humidity = data['main']['humidity']
+        # wind = data['wind']['speed']
+        # timezone = data['timezone']
+        # local_time = time.strftime('%H:%M:%S', time.gmtime(data['dt'] + int(timezone)))
+        # sunrise = time.strftime('%H:%M:%S', time.gmtime(data['sys']['sunrise'] + int(timezone)))
+        # sunset = time.strftime('%H:%M:%S', time.gmtime(data['sys']['sunset'] + int(timezone)))
 
         final_info = "Local Time: " + local_time + "\n" + condition + "\n" + str(temp) + "°C" 
         final_data = "\n"+ "Min Temp: " + str(min_temp) + "°C" + "\n" + "Max Temp: " + str(max_temp) + "°C" +"\n" + "Pressure: " + str(pressure) + "\n" +"Humidity: " + str(humidity) + "\n" + "Wind Speed: " + str(wind) + "\n" + "Sunrise: " + sunrise + "\n" + "Sunset: " + sunset + "\n"
 
         self.condition.configure(text=final_info)
         self.weather.configure(text=final_data)
+
 
 def value(t):
     x = t.get('1.0','end-1c')
@@ -89,7 +112,7 @@ def update_weather():
         # Else initialize
         else:
             wnum += 1
-            cityWeather = displayCityWeather(city,applet,wnum)
+            cityWeather = displayCityWeather(city,applet,wnum,lat_lon=city)
             weathers.append(cityWeather)
             displayed.append(city)
         cityWeather.getWeather()
@@ -130,7 +153,7 @@ if __name__ == "__main__":
     global weathers
     global wnum # number of weather locations (used for grid location)
 
-    cities = [ipcity]
+    cities = [lat_lon]
     displayed = []
     weathers = []
 
