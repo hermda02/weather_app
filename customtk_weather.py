@@ -43,7 +43,7 @@ class displayCityWeather():
         
         api = "https://api.met.no/weatherapi/locationforecast/2.0/complete?lat="+self.lat+"&lon="+self.lon
         self.weatherData = requests.get(api, headers=nmi_header).json()
-        # print(self.weatherData["properties"])
+        # print(self.weatherData["properties"]["meta"]['updated_at'])
         self.extractNMIWeather()
 
     def extractNMIWeather(self):
@@ -54,26 +54,30 @@ class displayCityWeather():
         '''
 
         units = self.weatherData["properties"]["meta"]["units"]
-        print(units)
+        now = self.weatherData["properties"]["meta"]['updated_at']
+
+        # print(units)
         weather_now = self.weatherData["properties"]["timeseries"][0]['data']['instant']['details']
-        print(weather_now)
+        summary_now = self.weatherData["properties"]["timeseries"][0]['data']['next_1_hours']
+        weather_next_hour = self.weatherData["properties"]["timeseries"]
+        
+        image = tk.PhotoImage(file='png/'+summary_now['summary']['symbol_code']+'.png')
 
 
 
-        # condition = data['weather'][0]['main']
-        # temp = int(data['main']['temp'] - 273.15)
-        # min_temp = int(data['main']['temp_min'] - 273.15)
-        # max_temp = int(data['main']['temp_max'] - 273.15)
-        # pressure = data['main']['pressure']
-        # humidity = data['main']['humidity']
-        # wind = data['wind']['speed']
+        temp = weather_now['air_temperature']
+        min_temp = weather_now['air_temperature_percentile_10']
+        max_temp = weather_now['air_temperature_percentile_90']
+        pressure = weather_now['air_pressure_at_sea_level']
+        humidity = weather_now['air_pressure_at_sea_level']
+        wind = weather_now['wind_speed']
         # timezone = data['timezone']
-        # local_time = time.strftime('%H:%M:%S', time.gmtime(data['dt'] + int(timezone)))
+        local_time = now#time.strftime('%H:%M:%S', time.gmtime(data['dt'] + int(timezone)))
         # sunrise = time.strftime('%H:%M:%S', time.gmtime(data['sys']['sunrise'] + int(timezone)))
         # sunset = time.strftime('%H:%M:%S', time.gmtime(data['sys']['sunset'] + int(timezone)))
 
-        final_info = "Local Time: " + local_time + "\n" + condition + "\n" + str(temp) + "°C" 
-        final_data = "\n"+ "Min Temp: " + str(min_temp) + "°C" + "\n" + "Max Temp: " + str(max_temp) + "°C" +"\n" + "Pressure: " + str(pressure) + "\n" +"Humidity: " + str(humidity) + "\n" + "Wind Speed: " + str(wind) + "\n" + "Sunrise: " + sunrise + "\n" + "Sunset: " + sunset + "\n"
+        final_info = str(temp) + "°C" 
+        final_data = "\n"+ "Min Temp: " + str(min_temp) + "°C" + "\n" + "Max Temp: " + str(max_temp) + "°C" +"\n" + "Pressure: " + str(pressure) + "\n" +"Humidity: " + str(humidity) + "\n" + "Wind Speed: " + str(wind) #+ "\n" + "Sunrise: " + sunrise + "," + "Sunset: " + sunset + "\n"
 
         self.condition.configure(text=final_info)
         self.weather.configure(text=final_data)
@@ -112,7 +116,7 @@ def update_weather():
         # Else initialize
         else:
             wnum += 1
-            cityWeather = displayCityWeather(city,applet,wnum,lat_lon=city)
+            cityWeather = displayCityWeather(city[0],applet,wnum,lat_lon=city[1])
             weathers.append(cityWeather)
             displayed.append(city)
         cityWeather.getWeather()
@@ -153,7 +157,7 @@ if __name__ == "__main__":
     global weathers
     global wnum # number of weather locations (used for grid location)
 
-    cities = [lat_lon]
+    cities = [(ipcity,lat_lon)]
     displayed = []
     weathers = []
 
