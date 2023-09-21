@@ -1,11 +1,13 @@
 import customtkinter as Ctk
-import tkinter as tk
 import requests 
 import datetime
 from appdirs import AppDirs
-import geocoder
+import ipinfo
 from geopy.geocoders import Nominatim
 from PIL import Image
+import sys
+import os
+import json
 
 # Simple desktop application made to track weather in a few locations as provided by the user
 # Utilizes tkinter as the main framework. Intended to track just three locations by default
@@ -52,7 +54,6 @@ class displayCityWeather():
         
         api = "https://api.met.no/weatherapi/locationforecast/2.0/complete?lat="+self.lat+"&lon="+self.lon
         self.weatherData = requests.get(api, headers=nmi_header).json()
-        # print(self.weatherData["properties"]["meta"]['updated_at'])
         self.extractNMIWeather(flag)
 
     def extractNMIWeather(self,flag=0):
@@ -144,25 +145,31 @@ def update_weather():
 
     # run again every 1000 ms
     applet.after(1000,update_clock)
+   
+def initAppData():
+    # create appdata directories
+    if not os.path.exists(dirs.user_data_dir):
+        os.makedirs(dirs.user_data_dir)
+    
+    user_data = os.path.join(dirs.user_data_dir,config_filename)
+    print(user_data)
 
+    if os.path.isfile(user_data):
+        with open(user_data, 'r') as infile:
+            data = json.load(infile)
+    else:
+        data = []
+
+    print(data)
+
+    return data
+
+
+def dumpAppData():
+    with open(os.path.join(dirs.user_data_dir,config_filename), "w") as outfile:
+        json.dump(cities, outfile)
 
 if __name__ == "__main__":
-
-    # Global API key for OpenWeather
-    api_key = "822be8f00df6e04cba9aca715e331cc3"
-
-    # Read the users IP address to find their city
-    iploc = geocoder.ip('me')
-    lat_lon = iploc.latlng
-    geolocator = Nominatim(user_agent="blah blah blah")
-    location = geolocator.reverse(lat_lon).raw
-    ipcity=location['address']['city']
-
-    # Save local city info as dict
-    local_city = {
-        "city": ipcity,
-        "latlon": lat_lon
-    }
 
     # List of all potential weather parameters
     weather_pars = [
@@ -183,13 +190,42 @@ if __name__ == "__main__":
     global weathers
     global wnum # number of weather locations (used for grid location)
 
-    cities = []
+    # API for ipinfo
+    ipinfo_api_key = "9f9248602a99a3"
+
+    # Define app data locations and config file name
+    appname = "dch_weather"
+    appauthor = "hermda02"
+    dirs = AppDirs(appname, appauthor)
+    config_filename = "appdata.json"
+
+    # Initialize data structures
+    cities = initAppData()
     displayed = []
     weathers = []
 
-    # Define app data locations and config file name
-    dirs = AppDirs("dch_weather","hermda02")
-    config_filename = "appdata.json"
+    # Read the users IP address to find their city
+    url = 'https://api.ipify.org'
+    response = requests.get(url)
+    user_ip = response.text
+    print(user_ip)
+
+    handler = ipinfo.getHandler(ipinfo_api_key)
+    details = handler.getDetails(user_ip)
+    print(details.loc)
+
+
+    lat_lon = [details.latitude,details.longitude]
+    geolocator = Nominatim(user_agent="blah blah blah")
+    location = geolocator.reverse(lat_lon).raw
+    ipcity=location['address']['city']
+
+    # Save local city info as dict
+    local_city = {
+        "city": ipcity,
+        "latlon": lat_lon
+    }
+
 
     # Initialize
     applet = Ctk.CTk()
@@ -240,3 +276,4 @@ if __name__ == "__main__":
 
     applet.mainloop()
 
+    dumpAppData()
