@@ -20,7 +20,7 @@ nmi_header = {'User-Agent': 'dcWeather/0.1 github.com/hermda02/weather_app'}
 Ctk.set_appearance_mode('Dark')
 Ctk.set_default_color_theme('blue')
 
-class displayCityWeather():
+class cityWeather():
     """Creates the instance for pulling down, storing, and displaying weather data"""
     def __init__(self, bottom_frame, city, row):
         """Initizalizes the weather class
@@ -87,7 +87,12 @@ class displayCityWeather():
     def getWeather(self,flag=0):
         ''' getWeather : self
         
-        Function to call the API and pull down the data
+        Function to call the API and pull down the data.
+
+        Parameters
+        ----------
+        flag : int
+            flag to determine if this is the local weather or a user added location
 
         '''
         
@@ -99,6 +104,11 @@ class displayCityWeather():
 
         Function that parses the data and adjusts the labels in the widget
         
+        Parameters
+        ----------
+        flag : int
+            flag to determine if this is the local weather or a user added location
+
         '''
 
         units = self.weatherData['properties']['meta']['units']
@@ -129,10 +139,28 @@ class displayCityWeather():
             self.nearbyImage.configure(image=image)
 
 def value(t):
+    """ Returns the value from the text field
+    
+    Parameters
+    ----------
+
+    t : CTkTextbox
+        The textbox class for customtkinter
+    """
     x = t.get('1.0','end-1c')
     return x
 
 def getCity(*event):
+    """ 
+    Parse the city from the user input and gather relevant information of weather data gathering
+    Updates the city list, and calls the clock and weather update
+    
+    Parameters
+    ----------
+    event : event, optional
+        Allows the function to be used by entering <return> in the text box
+    
+    """
 
     city_name=value(cityEntry)
     city_location = geolocator.geocode(city_name)
@@ -150,6 +178,9 @@ def getCity(*event):
     update_weather()
 
 def update_clock():
+    """
+    Returns the local time
+    """
     # Get current clock time
     current_time = now.format('HH:mm')
 
@@ -160,6 +191,11 @@ def update_clock():
     applet.after(1000,update_clock)
 
 def update_weather():
+    """
+    Iterates through cities in the city list, pulling down any data from cities that have
+    not yet had their data recovered. Creates the cityWeather object and uses its methods
+    
+    """
 
     wnum = 3
 
@@ -171,16 +207,20 @@ def update_weather():
             continue
         else:
             wnum += 1
-            cityWeather = displayCityWeather(applet,city,wnum)
-            weathers.append(cityWeather)
+            weather = cityWeather(applet,city,wnum)
+            weathers.append(weather)
             displayed.append(city)
-            cityWeather.getWeather()
-            cityWeather.extractNMIWeather()
+            weather.getWeather()
+            weather.extractNMIWeather()
 
     # run again every 1000 ms
     applet.after(1000,update_clock)
    
 def initAppData():
+    """
+    Defines the application data directories.
+    Either reads the current application data or creates an empty list of cities.
+    """
     # create appdata directories
     if not os.path.exists(dirs.user_data_dir):
         os.makedirs(dirs.user_data_dir)
@@ -197,6 +237,9 @@ def initAppData():
 
 
 def dumpAppData():
+    """
+    Takes the city data and dumps it to the application user data file
+    """
     with open(os.path.join(dirs.user_data_dir,config_filename), 'w') as outfile:
         json.dump(cities, outfile)
 
@@ -301,7 +344,7 @@ if __name__ == '__main__':
     addButton = Ctk.CTkButton(entry_frame, text='Add', command=getCity)
     addButton.grid(row=0, column=3)
 
-    localWeather = displayCityWeather(applet, local_city, -1)
+    localWeather = cityWeather(applet, local_city, -1)
     localWeather.getWeather(flag=1)
     localWeather.extractNMIWeather(flag=1)
 
