@@ -1,6 +1,5 @@
 import customtkinter as Ctk
 import requests 
-import datetime
 from appdirs import AppDirs
 import ipinfo
 from geopy.geocoders import Nominatim
@@ -21,8 +20,46 @@ nmi_header = {'User-Agent': 'dcWeather/0.1 github.com/hermda02/weather_app'}
 Ctk.set_appearance_mode('Dark')
 Ctk.set_default_color_theme('blue')
 
-class displayCityWeather():
+class cityWeather():
+    """Creates the instance for pulling down, storing, and displaying weather data"""
     def __init__(self, bottom_frame, city, row):
+        """Initizalizes the weather class
+        
+        ...
+
+        Attributes
+        ----------
+        cityname : str
+            a string containing the name of the city
+        lat : str
+            latitude of the city
+        lon : str
+            longitude of the city
+        tz : str
+            timezone of the city
+        weatherData : str
+            json formatted weather data as retrieved from the NMI API
+        nearbyImage : CTkLabel
+            CTkLabel instance for nearby weather image
+        nearbyLabel : CTkLabel
+            CTkLabel instance for nearby location name
+        nearbyWeather : CTkLabel
+            CTkLabel instance for nearby temperature
+        image : CTkLabel
+            CTkLabel instance for chosen location weather image
+        label : CTkLabel
+            CTkLabel instance for chosen location name
+        eeather : CTkLabel
+            CTkLabel instance for chosen location temperature            
+
+        Methods
+        -------
+        getWeather(flag=0)
+            Pulls down the weather data from the API
+
+        extractNMIWeather(flag=0)
+            Parses and formats weather data. Places data into tkinter frame            
+        """
         self.cityname = city['city']
         self.lat = str(city['latlon'][0])
         self.lon = str(city['latlon'][1])
@@ -31,47 +68,50 @@ class displayCityWeather():
         local_time = now.in_tz(self.tz)
 
         if row < 0:
-            self.nearbyDisplay = Ctk.CTkLabel(top_frame,text=f'{self.cityname}',font=('Courier',44))
-            self.nearbyDisplay.grid(row=0,column=0)
+            self.nearbyLabel = Ctk.CTkLabel(top_frame,text=f'{self.cityname}',font=('Courier',44))
+            self.nearbyLabel.grid(row=0,column=0)
             self.nearbyImage = Ctk.CTkLabel(top_frame,text='')
             self.nearbyImage.grid(row=0,column=1,rowspan=3)
             self.nearbyWeather = Ctk.CTkLabel(top_frame,font=('Courier',44))
             self.nearbyWeather.grid(row=1, rowspan=2, column=0)
 
         else:
-            self.cityLabel = Ctk.CTkLabel(bottom_frame,text=f'{self.cityname} \n {local_time.format("HH:mm")}',font=('Courier',24))
-            self.cityLabel.grid(row=row, column=0)
-
+            self.label = Ctk.CTkLabel(bottom_frame,text=f'{self.cityname} \n {local_time.format("HH:mm")}',font=('Courier',24),anchor='center')
+            self.label.grid(row=row, column=0,sticky='E')
+            self.image = Ctk.CTkLabel(bottom_frame,text='')
+            self.image.grid(row=row, column=2)
             self.weather = Ctk.CTkLabel(bottom_frame, text='', font=('Courier',24))
             self.weather.grid(row=row, column=1)
 
-            self.image = Ctk.CTkLabel(bottom_frame,text='')
-            self.image.grid(row=row, column=2)
 
     def getWeather(self,flag=0):
         ''' getWeather : self
         
-        Function to call the API and pull down the data
+        Function to call the API and pull down the data.
+
+        Parameters
+        ----------
+        flag : int
+            flag to determine if this is the local weather or a user added location
 
         '''
         
         api = 'https://api.met.no/weatherapi/locationforecast/2.0/complete?lat='+self.lat+'&lon='+self.lon
         self.weatherData = requests.get(api, headers=nmi_header).json()
-        self.extractNMIWeather(flag)
 
     def extractNMIWeather(self,flag=0):
         ''' extractNMIWeather : self
 
         Function that parses the data and adjusts the labels in the widget
         
+        Parameters
+        ----------
+        flag : int
+            flag to determine if this is the local weather or a user added location
+
         '''
 
         units = self.weatherData['properties']['meta']['units']
-        # now= = self.weatherData['properties']['meta']['updated_at']
-        # print(self.cityname)
-        # print(self.weatherData['properties']['timeseries'][0]['time'])
-        # print(now)
-        # print('')
 
         weather_now = self.weatherData['properties']['timeseries'][0]['data']['instant']['details']
         summary_now = self.weatherData['properties']['timeseries'][0]['data']['next_1_hours']
@@ -83,7 +123,6 @@ class displayCityWeather():
             image = Ctk.CTkImage(Image.open('png/'+summary_now['summary']['symbol_code']+'.png'),size=(150, 150))
 
         temp = weather_now['air_temperature']
-        # local_time = current_time
         # min_temp = weather_now['air_temperature_percentile_10']
         # max_temp = weather_now['air_temperature_percentile_90']
         # pressure = weather_now['air_pressure_at_sea_level']
@@ -95,16 +134,33 @@ class displayCityWeather():
         if flag == 0:
             self.weather.configure(text=final_info)
             self.image.configure(image=image)
-            # self.weather.configure(text=final_data)
         else:
             self.nearbyWeather.configure(text=final_info)
             self.nearbyImage.configure(image=image)
 
 def value(t):
+    """ Returns the value from the text field
+    
+    Parameters
+    ----------
+
+    t : CTkTextbox
+        The textbox class for customtkinter
+    """
     x = t.get('1.0','end-1c')
     return x
 
 def getCity(*event):
+    """ 
+    Parse the city from the user input and gather relevant information of weather data gathering
+    Updates the city list, and calls the clock and weather update
+    
+    Parameters
+    ----------
+    event : event, optional
+        Allows the function to be used by entering <return> in the text box
+    
+    """
 
     city_name=value(cityEntry)
     city_location = geolocator.geocode(city_name)
@@ -122,6 +178,9 @@ def getCity(*event):
     update_weather()
 
 def update_clock():
+    """
+    Returns the local time
+    """
     # Get current clock time
     current_time = now.format('HH:mm')
 
@@ -132,6 +191,11 @@ def update_clock():
     applet.after(1000,update_clock)
 
 def update_weather():
+    """
+    Iterates through cities in the city list, pulling down any data from cities that have
+    not yet had their data recovered. Creates the cityWeather object and uses its methods
+    
+    """
 
     wnum = 3
 
@@ -143,15 +207,20 @@ def update_weather():
             continue
         else:
             wnum += 1
-            cityWeather = displayCityWeather(applet,city,wnum)
-            weathers.append(cityWeather)
+            weather = cityWeather(applet,city,wnum)
+            weathers.append(weather)
             displayed.append(city)
-            cityWeather.getWeather()
+            weather.getWeather()
+            weather.extractNMIWeather()
 
     # run again every 1000 ms
     applet.after(1000,update_clock)
    
 def initAppData():
+    """
+    Defines the application data directories.
+    Either reads the current application data or creates an empty list of cities.
+    """
     # create appdata directories
     if not os.path.exists(dirs.user_data_dir):
         os.makedirs(dirs.user_data_dir)
@@ -168,6 +237,9 @@ def initAppData():
 
 
 def dumpAppData():
+    """
+    Takes the city data and dumps it to the application user data file
+    """
     with open(os.path.join(dirs.user_data_dir,config_filename), 'w') as outfile:
         json.dump(cities, outfile)
 
@@ -246,10 +318,11 @@ if __name__ == '__main__':
     top_frame.grid_rowconfigure((0,1,2),weight=1,uniform='row')
 
     # Create frame for weather info
-    bottom_frame = Ctk.CTkFrame(applet, width=600, height=200)
+    bottom_frame = Ctk.CTkFrame(applet, width=800, height=200)
     bottom_frame.grid(row=4, rowspan=4, columnspan=3, padx=10, pady=5)
     bottom_frame.grid_columnconfigure((0,1,2), weight=1, uniform='column')
     bottom_frame.grid_rowconfigure((1,2,3), weight=1, uniform='row')
+    bottom_frame.grid_propagate(False)
 
     # Frame for the time info
     time_frame = Ctk.CTkFrame(top_frame, width=200, height=100)
@@ -271,8 +344,9 @@ if __name__ == '__main__':
     addButton = Ctk.CTkButton(entry_frame, text='Add', command=getCity)
     addButton.grid(row=0, column=3)
 
-    localWeather = displayCityWeather(applet, local_city, -1)
+    localWeather = cityWeather(applet, local_city, -1)
     localWeather.getWeather(flag=1)
+    localWeather.extractNMIWeather(flag=1)
 
     update_weather()
 
